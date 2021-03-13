@@ -1,4 +1,4 @@
-TARGET = temp_sensor_test
+TARGET = led_and_button
 
 ######################################
 # building variables
@@ -21,12 +21,11 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 main.c \
-system_stm32f0xx.c \
-gpio.c \
+system_stm32g0xx.c \
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32f030x8.s
+startup_stm32g071rbtx.s
 
 
 #######################################
@@ -53,7 +52,7 @@ BIN = $(CP) -O binary -S
 # CFLAGS
 #######################################
 # cpu
-CPU = -mcpu=cortex-m0
+CPU = -mcpu=cortex-m0plus
 
 # fpu
 # NONE for Cortex-M0/M0+/M3
@@ -70,7 +69,7 @@ AS_DEFS =
 
 # C defines
 C_DEFS =  \
--DSTM32F030x8
+-DSTM32G071xx
 
 
 # AS includes
@@ -98,7 +97,7 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 # LDFLAGS
 #######################################
 # link script
-LDSCRIPT = STM32F030R8Tx_FLASH.ld
+LDSCRIPT = STM32G071RBTX_FLASH.ld
 
 # libraries
 LIBS = -lc -lm -lnosys 
@@ -150,5 +149,5 @@ clean:
 -include $(wildcard $(BUILD_DIR)/*.d)
 
 flash:
-	openocd -f /usr/share/openocd/scripts/interface/stlink-v1.cfg -f /usr/share/openocd/scripts/board/stm32f0discovery.cfg -c "program build/temp_sensor_test.elf verify reset exit"
+	openocd -f /usr/share/openocd/scripts/interface/stlink-v2-1.cfg -f /usr/share/openocd/scripts/target/stm32g0x.cfg -c "program build/hsi_systick.elf verify reset exit"
 # *** EOF ***
