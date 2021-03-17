@@ -1,4 +1,4 @@
-TARGET = led_and_button
+TARGET = temp_sensor_test
 
 ######################################
 # building variables

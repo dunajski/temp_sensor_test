@@ -4,5 +4,7 @@
 
 typedef uint32_t uint32;
 typedef uint8_t  uint8;
+#define TRUE  1
+#define FALSE 0
 
 #endif // _TYPES_H

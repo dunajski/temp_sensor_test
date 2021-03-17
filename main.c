@@ -3,22 +3,64 @@
 
 void PreparePLLAndChooseAsClock(void);
 void SlowFlashMemory(void);
+void TIM2_Init(void);
+void TIM3_Init(void);
+void StartTimer(void)
+{
+  TIM3->CR1 |= TIM_CR1_CEN;
+  TIM3->EGR |= TIM_EGR_UG;
+}
+
+void RestartTimer(void)
+{
+  TIM3->EGR |= TIM_EGR_UG;
+}
+
+uint8 CheckTimer(uint32 timer_cnt)
+{
+  uint32 actual_cnt = TIM2->CNT;
+  if (actual_cnt > timer_cnt)
+  {
+    TIM2->CNT = 0;
+    return TRUE;
+  }
+  else
+    return FALSE;
+}
 
 int main(void)
 {
   SlowFlashMemory();
   PreparePLLAndChooseAsClock();
+  TIM2_Init();
+  TIM3_Init();
 
   RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
   GPIOA->MODER = (GPIOA->MODER & (~GPIO_MODER_MODE5)) | GPIO_MODER_MODE5_0;
 
+  TIM3->CR1 &= ~(TIM_CR1_CEN);
+  StartTimer();
 
   while (1)
   {
+    if (CheckTimer(1000000UL))
+    {
+      GPIOA->ODR ^= GPIO_ODR_OD5;
+      RestartTimer();
+    }
   }
 }
 
 volatile uint32 test_value = 1000;
+
+void TIM2_IRQHandler(void)
+{
+  if (TIM2->SR & TIM_SR_UIF)
+  {
+    TIM2->SR &= ~(TIM_SR_UIF);
+    // GPIOA->ODR ^= GPIO_ODR_OD5;
+  }
+}
 
 void TIM3_IRQHandler(void)
 {
@@ -31,7 +73,7 @@ void TIM3_IRQHandler(void)
     if (j >= test_value)
     {
       j = 0;
-      GPIOA->ODR ^= GPIO_ODR_OD5;
+      //GPIOA->ODR ^= GPIO_ODR_OD5;
     }
   }
 }
@@ -93,8 +135,8 @@ void TIM3_Init(void)
   // Disable TIMER3
   TIM3->CR1 &= ~(TIM_CR1_CEN);
 
-  // dunno why I can't use PSC 63999 and ARR 1
-  // but 
+  // I would like to better use 63999 and 1, but now I can't
+  // ...and don't know why
   TIM3->PSC = 6399;
   TIM3->ARR = 10;
 
@@ -106,4 +148,28 @@ void TIM3_Init(void)
 
   NVIC_SetPriority(TIM3_IRQn, 0x00);
   NVIC_EnableIRQ(TIM3_IRQn);
+}
+
+void TIM2_Init(void)
+{
+  // Prepare timer to test 1 s
+  RCC->APBENR1 |= RCC_APBENR1_TIM2EN;
+
+  RCC->APBENR1 |= RCC_APBRSTR1_TIM2RST;
+  RCC->APBRSTR1 &= (~RCC_APBRSTR1_TIM2RST);
+  // Disable TIMER2
+  TIM2->CR1 &= ~(TIM_CR1_CEN);
+
+  // 64 MHz / (63 + 1) = 1 MHz
+  TIM2->PSC = 63;
+  TIM2->ARR = 0xFFFFFFFF;
+
+  TIM2->EGR |= TIM_EGR_UG;
+
+  TIM2->DIER |= TIM_DIER_UIE;
+
+  TIM2->CR1 |= TIM_CR1_CEN;
+
+  NVIC_SetPriority(TIM2_IRQn, 0x00);
+  NVIC_EnableIRQ(TIM2_IRQn);
 }
