@@ -1,32 +1,10 @@
 #include "stm32g071xx.h"
 #include "types.h"
+#include "gpio.h"
+#include "timer.h"
 
 void PreparePLLAndChooseAsClock(void);
 void SlowFlashMemory(void);
-void TIM2_Init(void);
-void TIM3_Init(void);
-void StartTimer(void)
-{
-  TIM3->CR1 |= TIM_CR1_CEN;
-  TIM3->EGR |= TIM_EGR_UG;
-}
-
-void RestartTimer(void)
-{
-  TIM3->EGR |= TIM_EGR_UG;
-}
-
-uint8 CheckTimer(uint32 timer_cnt)
-{
-  uint32 actual_cnt = TIM2->CNT;
-  if (actual_cnt > timer_cnt)
-  {
-    TIM2->CNT = 0;
-    return TRUE;
-  }
-  else
-    return FALSE;
-}
 
 int main(void)
 {
@@ -35,10 +13,16 @@ int main(void)
   TIM2_Init();
   TIM3_Init();
 
-  RCC->IOPENR |= RCC_IOPENR_GPIOAEN;
-  GPIOA->MODER = (GPIOA->MODER & (~GPIO_MODER_MODE5)) | GPIO_MODER_MODE5_0;
+  EnablePortGpio(GPIOA);
+  SetGpioAsOutput(GPIOA, LD4);
 
-  TIM3->CR1 &= ~(TIM_CR1_CEN);
+  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE14))| GPIO_MODER_MODE14_1);
+  GPIOA->OSPEEDR = ((GPIOA->OSPEEDR & (~GPIO_OSPEEDR_OSPEED14)) | (GPIO_OSPEEDR_OSPEED14_1 | GPIO_OSPEEDR_OSPEED14_0));
+  GPIOA->OTYPER |= GPIO_OTYPER_OT14;
+  // SetGpioAsOutput(GPIOA, TEMPSENSOR_DQ);
+  // SetGpioSpeed(GPIOA, TEMPSENSOR_DQ, _HIGH_SPEED);
+  // SetOutputAsOpenDrain(GPIOA, TEMPSENSOR_DQ);
+
   StartTimer();
 
   while (1)
@@ -47,33 +31,6 @@ int main(void)
     {
       GPIOA->ODR ^= GPIO_ODR_OD5;
       RestartTimer();
-    }
-  }
-}
-
-volatile uint32 test_value = 1000;
-
-void TIM2_IRQHandler(void)
-{
-  if (TIM2->SR & TIM_SR_UIF)
-  {
-    TIM2->SR &= ~(TIM_SR_UIF);
-    // GPIOA->ODR ^= GPIO_ODR_OD5;
-  }
-}
-
-void TIM3_IRQHandler(void)
-{
-  static uint32 j = 0;
-  if (TIM3->SR & TIM_SR_UIF)
-  {
-    TIM3->SR &= ~(TIM_SR_UIF);
-    j++;
-
-    if (j >= test_value)
-    {
-      j = 0;
-      //GPIOA->ODR ^= GPIO_ODR_OD5;
     }
   }
 }
@@ -116,60 +73,10 @@ void PreparePLLAndChooseAsClock(void)
   RCC->CFGR |= RCC_CFGR_SW_1;
 }
 
-
 void SlowFlashMemory(void)
 {
   // Clock at 64 MHz need to slow memory
   FLASH->ACR &= ~(0x00000017);
   // 2 wait states
   FLASH->ACR |= (FLASH_ACR_LATENCY_1 | FLASH_ACR_LATENCY_0 | FLASH_ACR_PRFTEN);
-}
-
-void TIM3_Init(void)
-{
-  // Prepare timer to test 1 s
-  RCC->APBENR1 |= RCC_APBENR1_TIM3EN;
-
-  RCC->APBENR1 |= RCC_APBRSTR1_TIM3RST;
-  RCC->APBRSTR1 &= (~RCC_APBRSTR1_TIM3RST);
-  // Disable TIMER3
-  TIM3->CR1 &= ~(TIM_CR1_CEN);
-
-  // I would like to better use 63999 and 1, but now I can't
-  // ...and don't know why
-  TIM3->PSC = 6399;
-  TIM3->ARR = 10;
-
-  TIM3->EGR |= TIM_EGR_UG;
-
-  TIM3->DIER |= TIM_DIER_UIE;
-
-  TIM3->CR1 |= TIM_CR1_CEN;
-
-  NVIC_SetPriority(TIM3_IRQn, 0x00);
-  NVIC_EnableIRQ(TIM3_IRQn);
-}
-
-void TIM2_Init(void)
-{
-  // Prepare timer to test 1 s
-  RCC->APBENR1 |= RCC_APBENR1_TIM2EN;
-
-  RCC->APBENR1 |= RCC_APBRSTR1_TIM2RST;
-  RCC->APBRSTR1 &= (~RCC_APBRSTR1_TIM2RST);
-  // Disable TIMER2
-  TIM2->CR1 &= ~(TIM_CR1_CEN);
-
-  // 64 MHz / (63 + 1) = 1 MHz
-  TIM2->PSC = 63;
-  TIM2->ARR = 0xFFFFFFFF;
-
-  TIM2->EGR |= TIM_EGR_UG;
-
-  TIM2->DIER |= TIM_DIER_UIE;
-
-  TIM2->CR1 |= TIM_CR1_CEN;
-
-  NVIC_SetPriority(TIM2_IRQn, 0x00);
-  NVIC_EnableIRQ(TIM2_IRQn);
 }

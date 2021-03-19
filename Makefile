@@ -22,6 +22,7 @@ BUILD_DIR = build
 C_SOURCES =  \
 main.c \
 system_stm32g0xx.c \
+timer.c \
 
 # ASM sources
 ASM_SOURCES =  \
@@ -82,7 +83,7 @@ C_INCLUDES =  \
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
 
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fshort-enums
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2
