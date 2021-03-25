@@ -1,6 +1,8 @@
 #include "types.h"
 #include "timer.h"
 
+// TIM2 here is used
+
 void StartTimer(void)
 {
   TIM2->CR1 |= TIM_CR1_CEN;
@@ -12,13 +14,22 @@ void RestartTimer(void)
   TIM2->EGR |= TIM_EGR_UG;
 }
 
-uint8 CheckTimer(uint32 timer_cnt)
+void StopTimer(void)
+{
+  TIM2->CR1 &= (~TIM_CR1_CEN);
+}
+
+uint8 CheckIsTimeElapsed(uint32 timer_cnt)
 {
   uint32 actual_cnt = TIM2->CNT;
-  if (actual_cnt > timer_cnt)
-    return TRUE;
-  else
-    return FALSE;
+  if (actual_cnt >= timer_cnt) return TRUE;
+  else return FALSE;
+}
+
+uint8 IsTimerOn(void)
+{
+  if (TIM2->CR1 & TIM_CR1_CEN) return TRUE;
+  else return FALSE;
 }
 
 volatile uint32 test_value = 1000;
@@ -83,6 +94,7 @@ void TIM2_Init(void)
   TIM2->CR1 &= ~(TIM_CR1_CEN);
 
   // 64 MHz / (63 + 1) = 1 MHz
+  // 1 CNT == 1 uS
   TIM2->PSC = 63;
   TIM2->ARR = 0xFFFFFFFF;
 

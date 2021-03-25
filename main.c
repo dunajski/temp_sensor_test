@@ -2,6 +2,7 @@
 #include "types.h"
 #include "gpio.h"
 #include "timer.h"
+#include "ds18b20.h"
 
 void PreparePLLAndChooseAsClock(void);
 void SlowFlashMemory(void);
@@ -27,11 +28,12 @@ int main(void)
 
   while (1)
   {
-    if (CheckTimer(1000000UL))
-    {
-      GPIOA->ODR ^= GPIO_ODR_OD5;
-      RestartTimer();
-    }
+    // if (CheckIsTimeElapsed(1000000UL))
+    // {
+    //   GPIOA->ODR ^= GPIO_ODR_OD5;
+    //   RestartTimer();
+    // }
+    ds18b20();
   }
 }
 

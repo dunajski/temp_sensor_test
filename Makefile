@@ -23,6 +23,7 @@ C_SOURCES =  \
 main.c \
 system_stm32g0xx.c \
 timer.c \
+ds18b20.c
 
 # ASM sources
 ASM_SOURCES =  \
