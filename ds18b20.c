@@ -1,74 +1,124 @@
 #include "types.h"
 #include "stm32g071xx.h"
 #include "timer.h"
-
-// write bit
-// read bit
-// reset sequence
+#include "gpio.h"
 
 typedef enum
 {
-  MASTER_PULL_DOWN = 480,
-  MASTER_RX_PRESENCE_WAIT = 480,
-  DS_PRESENCE_PULSE_MIN = 60,
-  DS_PRESENCE_PULSE_MAX = 240,
-  DS_WAIT_AFTER_RESET_MIN = 15,
-  DS_WAIT_AFTER_REST_MAX = 60,
+  MASTER_RESET_PULL_DOWN_TIME   = 480,
+  MASTER_RX_PRESENCE_WAIT_TIME  = 480,
+  DS_WAIT_AFTER_RESET_MIN_TIME  = 15,
+  DS_WAIT_AFTER_RESET_MAX_TIME  = 60,
+  DS_PRESENCE_PULSE_MIN_TIME    = 60,
+  DS_PRESENCE_PULSE_MAX_TIME    = 240,
 } EPulseLen;
 
 typedef enum
 {
-  MASTER_TX_INIT = 0x00,
-  MASTER_RX_INIT,
-  DS_PRESENCE_PULSE_START,
+  MASTER_TX_RESET_PULSE_START = 0x00,
+  MASTER_TX_RESET_PULSE,
+  MASTER_RX_WAIT_FOR_PRESENECE,
+  SENSOR_PRESENCE_PULSE_START,
+  MASTER_TX_COMMAND,
 } TSensorState;
 
 TSensorState state;
 
 static uint8 STOP_MEASURE_TEMP = FALSE;
 
+void SetDqPinAsOutput(void)
+{
+  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE9)) | GPIO_MODER_MODE9_1);
+}
+
+void SetDqPinAsInput(void)
+{
+  GPIOA->MODER = (GPIOA->MODER & (~GPIO_MODER_MODE9));
+}
+
+void SetOneWireOutputHigh(void)
+{
+  GPIOA->BSRR = GPIO_BSRR_BS9;
+}
+
+void SetOneWireOutputLow(void)
+{
+  GPIOA->BSRR = GPIO_BSRR_BR9;
+}
+
 void ds18b20(void)
 {
   // variable to make easier debuging
-  if (STOP_MEASURE_TEMP)
-    return;
+  if (STOP_MEASURE_TEMP) return;
 
   switch (state)
   {
-    case MASTER_TX_INIT:
-      if (!IsTimerOn())
+    case MASTER_TX_RESET_PULSE_START:
+      RestartTimer();
+      SetDqPinAsOutput();
+      SetOneWireOutputLow();
+      state = MASTER_TX_RESET_PULSE;
+    break;
+
+    case MASTER_TX_RESET_PULSE:
+      if (CheckIsTimeElapsed(MASTER_RESET_PULL_DOWN_TIME))
       {
-        StartTimer();
-        // TODO MASTER pull-down for min. 480 us
+        SetDqPinAsInput();
+        RestartTimer();
+        state = MASTER_RX_WAIT_FOR_PRESENECE;
+      }
+    break;
+
+    case MASTER_RX_WAIT_FOR_PRESENECE:
+      // DS18B20 wait 15-60 us and then should pull-down line
+      if (!CheckIsTimeElapsed(DS_WAIT_AFTER_RESET_MIN_TIME)) break;
+
+      // after at least 15 us DS18B20 can pull line to ground
+      if (!(GPIOA->IDR & GPIO_IDR_ID9))
+      {
+        state = SENSOR_PRESENCE_PULSE_START;
+        RestartTimer();
         break;
       }
 
-      if (CheckIsTimeElapsed(MASTER_PULL_DOWN))
-      {
-        // TODO MASTER release pull-down and go to RX
-        RestartTimer();
-        state = MASTER_RX_INIT;
-        break;
-      }
-    break;
-    case MASTER_RX_INIT:
       // No sensors found after 480 us, restart machine
-      if (CheckIsTimeElapsed(MASTER_RX_PRESENCE_WAIT))
+      if (CheckIsTimeElapsed(MASTER_RX_PRESENCE_WAIT_TIME))
       {
-        state = MASTER_TX_INIT;
+        state = MASTER_TX_RESET_PULSE_START;
         StopTimer();
         break;
       }
-
-      // DS18B20 wait 15-60 us and then pull-down line
-      if (!CheckIsTimeElapsed(DS_WAIT_AFTER_RESET_MIN)) break;
-
-      // TODO Check that GPIO is pull-down by DS18B20, RestartTimer and change state
-
     break;
 
-    case DS_PRESENCE_PULSE_START:
-      // TODO check is GPIO pull-down by DS for 60-240 us
+    case SENSOR_PRESENCE_PULSE_START:
+      // now it should be pulled down for a 60 to 240 us
+      if ((GPIOA->IDR & GPIO_IDR_ID9) && CheckIsTimeElapsed(DS_PRESENCE_PULSE_MIN_TIME))
+      {
+        // pull-down by DS18B20 done properly, now we can talk
+        state = MASTER_TX_COMMAND;
+        RestartTimer();
+        break;
+      }
+
+      // if pin is pulled up before min time something went wrong, restart
+      if (GPIOA->IDR & GPIO_IDR_ID9)
+      {
+        STOP_MEASURE_TEMP = TRUE;
+        state = MASTER_TX_RESET_PULSE_START;
+        break;
+      }
+    break;
+
+    case MASTER_TX_COMMAND:
+      // FIXME when press key restart machine
+      if (!(GPIOC->IDR & GPIO_IDR_ID13))
+      {
+          state = MASTER_TX_RESET_PULSE_START;
+          GPIOA->ODR ^= GPIO_ODR_OD5;
+          RestartTimer();
+      }
+    break;
+    default:
     break;
   }
 }

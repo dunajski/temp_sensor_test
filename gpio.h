@@ -3,9 +3,15 @@
 #include "types.h"
 
 // GPIOA
+#define LD4_PORT GPIOA
 #define LD4 5
 
-#define TEMPSENSOR_DQ 14
+#define TEMPSENSOR_DQ 9
+#define TEMPSENSOR_DQ_PORT GPIOA
+
+// GPIOC
+#define BLUE_BUTTON_PORT GPIOC
+#define BLUE_BUTTON 13
 
 typedef enum
 {

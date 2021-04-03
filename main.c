@@ -17,22 +17,18 @@ int main(void)
   EnablePortGpio(GPIOA);
   SetGpioAsOutput(GPIOA, LD4);
 
-  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE14))| GPIO_MODER_MODE14_1);
-  GPIOA->OSPEEDR = ((GPIOA->OSPEEDR & (~GPIO_OSPEEDR_OSPEED14)) | (GPIO_OSPEEDR_OSPEED14_1 | GPIO_OSPEEDR_OSPEED14_0));
+  // DQ PIN
+  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE9))| GPIO_MODER_MODE9_1);
+  GPIOA->OSPEEDR = ((GPIOA->OSPEEDR & (~GPIO_OSPEEDR_OSPEED9)) | (GPIO_OSPEEDR_OSPEED9_1 | GPIO_OSPEEDR_OSPEED9_0));
   GPIOA->OTYPER |= GPIO_OTYPER_OT14;
-  // SetGpioAsOutput(GPIOA, TEMPSENSOR_DQ);
-  // SetGpioSpeed(GPIOA, TEMPSENSOR_DQ, _HIGH_SPEED);
-  // SetOutputAsOpenDrain(GPIOA, TEMPSENSOR_DQ);
 
-  StartTimer();
+  EnablePortGpio(GPIOC);
+  // BLUE BUTTON
+  GPIOC->MODER &= (~GPIO_MODER_MODE13);
+  // It's externally pulled-up to VCC
 
   while (1)
   {
-    // if (CheckIsTimeElapsed(1000000UL))
-    // {
-    //   GPIOA->ODR ^= GPIO_ODR_OD5;
-    //   RestartTimer();
-    // }
     ds18b20();
   }
 }
