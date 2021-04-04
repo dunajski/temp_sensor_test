@@ -28,20 +28,20 @@ static uint8 STOP_MEASURE_TEMP = FALSE;
 
 void SetDqPinAsOutput(void)
 {
-  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE9)) | GPIO_MODER_MODE9_1);
+  SetGpioMode(TEMPSENSOR_DQ_PORT, TEMPSENSOR_DQ, _OUTPUT);
 }
 
 void SetDqPinAsInput(void)
 {
-  GPIOA->MODER = (GPIOA->MODER & (~GPIO_MODER_MODE9));
+  SetGpioMode(TEMPSENSOR_DQ_PORT, TEMPSENSOR_DQ, _INPUT);
 }
 
-void SetOneWireOutputHigh(void)
+void SetDqPinHigh(void)
 {
   GPIOA->BSRR = GPIO_BSRR_BS9;
 }
 
-void SetOneWireOutputLow(void)
+void SetDqPinLow(void)
 {
   GPIOA->BSRR = GPIO_BSRR_BR9;
 }
@@ -56,7 +56,7 @@ void ds18b20(void)
     case MASTER_TX_RESET_PULSE_START:
       RestartTimer();
       SetDqPinAsOutput();
-      SetOneWireOutputLow();
+      SetDqPinLow();
       state = MASTER_TX_RESET_PULSE;
     break;
 
@@ -111,11 +111,12 @@ void ds18b20(void)
 
     case MASTER_TX_COMMAND:
       // FIXME when press key restart machine
+      // no need debouncing
       if (!(GPIOC->IDR & GPIO_IDR_ID13))
       {
-          state = MASTER_TX_RESET_PULSE_START;
-          GPIOA->ODR ^= GPIO_ODR_OD5;
-          RestartTimer();
+        state = MASTER_TX_RESET_PULSE_START;
+        GPIOA->ODR ^= GPIO_ODR_OD5;
+        RestartTimer();
       }
     break;
     default:

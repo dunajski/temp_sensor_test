@@ -42,21 +42,21 @@ void TIM2_IRQHandler(void)
   }
 }
 
-void TIM3_IRQHandler(void)
-{
-  static uint32 j = 0;
-  if (TIM3->SR & TIM_SR_UIF)
-  {
-    TIM3->SR &= ~(TIM_SR_UIF);
-    j++;
+// void TIM3_IRQHandler(void)
+// {
+//   static uint32 j = 0;
+//   if (TIM3->SR & TIM_SR_UIF)
+//   {
+//     TIM3->SR &= ~(TIM_SR_UIF);
+//     j++;
 
-    if (j >= test_value)
-    {
-      j = 0;
-      //GPIOA->ODR ^= GPIO_ODR_OD5;
-    }
-  }
-}
+//     if (j >= test_value)
+//     {
+//       j = 0;
+//       //GPIOA->ODR ^= GPIO_ODR_OD5;
+//     }
+//   }
+// }
 
 void TIM3_Init(void)
 {

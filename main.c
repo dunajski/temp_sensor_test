@@ -12,19 +12,19 @@ int main(void)
   SlowFlashMemory();
   PreparePLLAndChooseAsClock();
   TIM2_Init();
-  TIM3_Init();
+  // TIM3_Init();
 
   EnablePortGpio(GPIOA);
-  SetGpioAsOutput(GPIOA, LD4);
+  SetGpioMode(GPIOA, LD4, _OUTPUT);
 
   // DQ PIN
-  GPIOA->MODER = ((GPIOA->MODER & (~GPIO_MODER_MODE9))| GPIO_MODER_MODE9_1);
-  GPIOA->OSPEEDR = ((GPIOA->OSPEEDR & (~GPIO_OSPEEDR_OSPEED9)) | (GPIO_OSPEEDR_OSPEED9_1 | GPIO_OSPEEDR_OSPEED9_0));
-  GPIOA->OTYPER |= GPIO_OTYPER_OT14;
+  SetGpioMode(TEMPSENSOR_DQ_PORT, TEMPSENSOR_DQ, _OUTPUT);
+  SetGpioSpeed(TEMPSENSOR_DQ_PORT, TEMPSENSOR_DQ, _HIGH_SPEED);
+  SetOutputAsOpenDrain(TEMPSENSOR_DQ_PORT, TEMPSENSOR_DQ);
 
-  EnablePortGpio(GPIOC);
   // BLUE BUTTON
-  GPIOC->MODER &= (~GPIO_MODER_MODE13);
+  EnablePortGpio(GPIOC);
+  SetGpioMode(BLUE_BUTTON_PORT, BLUE_BUTTON, _INPUT);
   // It's externally pulled-up to VCC
 
   while (1)
@@ -36,6 +36,7 @@ int main(void)
 // Function to set SysClock to 64 MHz
 void PreparePLLAndChooseAsClock(void)
 {
+  __disable_irq();
   // Turn off PLL module to change settings (mentioned in datasheet)
   if (RCC->CR & RCC_CR_PLLON)
   {
@@ -69,12 +70,15 @@ void PreparePLLAndChooseAsClock(void)
   while (!(RCC->CR & RCC_CR_PLLRDY)) continue;
   // When PLL is ready change to PLLRCLK
   RCC->CFGR |= RCC_CFGR_SW_1;
+  __enable_irq();
 }
 
 void SlowFlashMemory(void)
 {
+  __disable_irq();
   // Clock at 64 MHz need to slow memory
   FLASH->ACR &= ~(0x00000017);
   // 2 wait states
   FLASH->ACR |= (FLASH_ACR_LATENCY_1 | FLASH_ACR_LATENCY_0 | FLASH_ACR_PRFTEN);
+  __enable_irq();
 }

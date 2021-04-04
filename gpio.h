@@ -37,34 +37,66 @@ typedef enum
 
 typedef enum
 {
-  _PUSHPULL = 0x1UL,
+  _PUSHPULL  = 0x1UL,
   _OPENDRAIN = 0x1UL,
 } EGpioPuPdOd;
 
+#define SetGpioMode(_PORT, _PIN, _TYPE) \
+do { \
+  __disable_irq(); \
+  _PORT->MODER = (volatile uint32)((_PORT->MODER & (~(3UL << (_PIN << 1UL)))) | (_TYPE << (_PIN << 1))); \
+  __enable_irq(); \
+} while (0)
+
 // Gpio Type macros, MODER related
-#define SetGpioMode(_PORT, _PIN, _TYPE) (_PORT->MODER = (volatile uint32)((_PORT->MODER & (~(GPIO_MODER_MODE##_PIN))) | (_TYPE << (_PIN << 1))))
-#define SetGpioAsAlternate(_PORT, _PIN) (SetGpioMode(_PORT, _PIN, _ALTERNATE))
-#define SetGpioAsAnalog(_PORT, _PIN)    (SetGpioMode(_PORT, _PIN, _ANALOG))
-#define SetGpioAsInput(_PORT, _PIN)     (SetGpioMode(_PORT, _PIN, _INPUT))
-#define SetGpioAsOutput(_PORT, _PIN)    (SetGpioMode(_PORT, _PIN, _OUTPUT))
+// #define SetGpioMode(_PORT, _PIN, _TYPE) (_PORT->MODER = (volatile uint32)((_PORT->MODER & (~(GPIO_MODER_MODE##_PIN))) | (_TYPE << (_PIN << 1))))
+// #define SetGpioAsAlternate(_PORT, _PIN) (SetGpioMode(_PORT, _PIN, _ALTERNATE))
+// #define SetGpioAsAnalog(_PORT, _PIN)    (SetGpioMode(_PORT, _PIN, _ANALOG))
+// #define SetGpioAsInput(_PORT, _PIN)     (SetGpioMode(_PORT, _PIN, _INPUT))
+// #define SetGpioAsOutput(_PORT, _PIN)    (SetGpioMode(_PORT, _PIN, _OUTPUT))
 
-// NOTE copied, not tested
+#define SetGpioSpeed(_PORT, _PIN, _SPEED) \
+do { \
+  __disable_irq(); \
+  _PORT->OSPEEDR = (volatile uint32)((_PORT->OSPEEDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->OSPEEDR | (_SPEED<< (_PIN << 1)))); \
+  __enable_irq(); \
+} while (0)
+
 // Gpio Speed  macros, OSPEEDR related
-#define SetGpioSpeed(_PORT, _PIN, _SPEED) (_PORT->OSPEEDR = (volatile uint32)((_PORT->OSPEEDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->OSPEEDR | (_SPEED<< (_PIN << 1)))))
-#define SetGpioToLowSpeed(_PORT, _PIN)     (SetGpioSpeed(_PORT, _PIN, _LOW_SPEED))
-#define SetGpioToMidSpeed(_PORT, _PIN)     (SetGpioSpeed(_PORT, _PIN, _MID_SPEED))
-#define SetGpioToHighSpeed(_PORT, _PIN)    (SetGpioSpeed(_PORT, _PIN, _HIGH_SPEED))
+// #define SetGpioSpeed(_PORT, _PIN, _SPEED) (_PORT->OSPEEDR = (volatile uint32)((_PORT->OSPEEDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->OSPEEDR | (_SPEED<< (_PIN << 1)))))
+// #define SetGpioToLowSpeed(_PORT, _PIN)     (SetGpioSpeed(_PORT, _PIN, _LOW_SPEED))
+// #define SetGpioToMidSpeed(_PORT, _PIN)     (SetGpioSpeed(_PORT, _PIN, _MID_SPEED))
+// #define SetGpioToHighSpeed(_PORT, _PIN)    (SetGpioSpeed(_PORT, _PIN, _HIGH_SPEED))
 
-// NOTE copied, not tested
+#define SetGpioPuPd(_PORT, _PIN, _PUPDTYPE) \
+do { \
+  __disable_irq(); \
+  _PORT->PUPDR = (volatile uint32)((_PORT->PUPDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->PUPDR | (_PUPDTYPE << (_PIN << 1)))); \
+  __enable_irq(); \
+} while (0)
+
 // Gpio pull-up/pull-down macros, PUPDR related
-#define SetGpioPuPd(_PORT, _PIN, _PUPDTYPE) (_PORT->PUPDR = (volatile uint32)((_PORT->PUPDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->PUPDR | (_PUPDTYPE << (_PIN << 1)))))
-#define SetGpioPu(_PORT, _PIN) (SetGpioPuPd(_PORT, _PIN, _PU))
-#define SetGpioPd(_PORT, _PIN)    (SetGpioPuPd(_PORT, _PIN, _PD))
-#define SetGpioNoPuPd(_PORT, _PIN)     (SetGpioPuPd(_PORT, _PIN, _NO_PUPD))
+// #define SetGpioPuPd(_PORT, _PIN, _PUPDTYPE) (_PORT->PUPDR = (volatile uint32)((_PORT->PUPDR & (~(0x3UL << (_PIN << 1)))) | (_PORT->PUPDR | (_PUPDTYPE << (_PIN << 1)))))
+// #define SetGpioPu(_PORT, _PIN) (SetGpioPuPd(_PORT, _PIN, _PU))
+// #define SetGpioPd(_PORT, _PIN)    (SetGpioPuPd(_PORT, _PIN, _PD))
+// #define SetGpioNoPuPd(_PORT, _PIN)     (SetGpioPuPd(_PORT, _PIN, _NO_PUPD))
 
-// NOTE copied, not tested
-#define SetOutputAsPushPull(_PORT, _PIN) (_PORT->OTYPER = (volatile uint32)(_PORT->OTYPER & (~(_PUSHPULL << _PIN))))
-#define SetOutputAsOpenDrain(_PORT, _PIN) (_PORT->OTYPER = (volatile uint32)(_PORT->OTYPER | _OPENDRAIN << _PIN))
+#define SetOutputAsPushPull(_PORT, _PIN) \
+do { \
+  __disable_irq(); \
+  _PORT->OTYPER = (volatile uint32)(_PORT->OTYPER & (~(_PUSHPULL << _PIN))); \
+  __enable_irq(); \
+} while (0)
+
+#define SetOutputAsOpenDrain(_PORT, _PIN) \
+do { \
+  __disable_irq(); \
+  _PORT->OTYPER = (volatile uint32)(_PORT->OTYPER | _OPENDRAIN << _PIN); \
+  __enable_irq(); \
+} while (0)
+
+// #define SetOutputAsPushPull(_PORT, _PIN) (_PORT->OTYPER = (volatile uint32)(_PORT->OTYPER & (~(_PUSHPULL << _PIN))))
+// #define SetOutputAsOpenDrain(_PORT, _PIN) (_PORT->OTYPER = (volatile uint32)(_PORT->OTYPER | _OPENDRAIN << _PIN))
 
 #define EnablePortGpio(_PORT)  (RCC->IOPENR |= RCC_IOPENR_##_PORT##EN)
 #define DisablePortGpio(_PORT)  (RCC->IOPENR &= (~RCC_IOPENR_##_PORT##EN))
